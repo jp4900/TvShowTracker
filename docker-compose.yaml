@@ -54,7 +54,7 @@ services:
       - Email__Password=kocadpafmiznftgi
       - Email__FromName=TV Show Tracker
       - Email__FromAddress=noreply@tvshowtracker.com
-      -AppURL=http://localhost:3000
+      - AppURL=http://localhost:3000
     ports:
       - "5000:5000"
     depends_on:
