@@ -1,0 +1,93 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: tvshowtracker-postgres
+    environment:
+      POSTGRES_DB: tvshowtracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tvshowtracker-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: tvshowtracker-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - tvshowtracker-network
+
+  # .NET API
+  api:
+    build:
+      context: ./backend/TvShowTrackerApi
+      dockerfile: Dockerfile
+    container_name: tvshowtracker-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=tvshowtracker;Username=postgres;Password=postgres
+      - ConnectionStrings__Redis=redis:6379
+      - Jwt__Key=YourSuperSecretKeyThatIsAtLeast32CharactersLongForHS256Algorithm
+      - Jwt__Issuer=TVShowTrackerAPI
+      - Jwt__Audience=TVShowTrackerClients
+      - Email__SmtpHost=smtp.gmail.com
+      - Email__SmtpPort=587
+      - Email__Username=tvshowtrackerapi@gmail.com
+      - Email__Password=kocadpafmiznftgi
+      - Email__FromName=TV Show Tracker
+      - Email__FromAddress=noreply@tvshowtracker.com
+      -AppURL=http://localhost:3000
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tvshowtracker-network
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tvshowtracker-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    environment:
+      - VITE_API_URL=http://localhost:5000/api
+    networks:
+      - tvshowtracker-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  tvshowtracker-network:
+    driver: bridge
