@@ -3,3 +3,8 @@ For the frontend, I went with React + TypeScript and TanStack Query for data fet
 Implemented AI-powered recommendation system using machine learning. It analyzes users' favorite shows and applies collaborative filtering to suggest new content based on shared preferences and viewing patterns. The recommendations get better as users interact more with the app.
 I made sure to handle GDPR compliance properly with a data export functionality—users can download all their data as CSV or PDF files at any timeand accepting data processing on register. The entire application is containerized with Docker, so anyone can spin up the whole stack (frontend, backend, PostgreSQL, Redis) with a single docker-compose up command.
 The architecture is clean and scalable, using dependency injection, repository patterns, and proper error handling throughout. I focused on making this production-ready with security features like BCrypt password hashing, proper CORS configuration, and Swagger documentation for the API. Everything was built thinking about how it would actually run in a real production environment. I added a test user, mentioned in the Frontend to simplify your life a bit (feel free to create new ones). Some of the show/actor images may be broken because image links are frequently updated and the ones used by me may be out of date. I did not have the time to implemente unit tests. Thank you for the opportunity, and i hope you enjoy your time taking a look at my project and my code.
+
+
+Note:
+
+If you get na error when trying to train the AI model, it will probably be because you need a minimum of 10 favorited shows for it to have enough data to be trained.

@@ -90,9 +90,16 @@ public class MLRecommendationService : IRecommendationService
                     Rating = 0 // not yet predicted
                 });
 
-                // Combine ML score with show popularity and rating
+                float mlScore = prediction.Score;
+                if (float.IsNaN(mlScore) || float.IsInfinity(mlScore))
+                {
+                    mlScore = 0f;
+                }
+
+                mlScore = Math.Max(0f, Math.Min(mlScore, 10f));
+
                 float combinedScore =
-                    (prediction.Score * 0.6f) +          // 60% ML prediction
+                    (mlScore * 0.6f) +                   // 60% ML prediction
                     ((float)show.Rating * 0.2f) +        // 20% show rating
                     ((float)show.Popularity / 10 * 0.2f); // 20% popularity
 
@@ -101,6 +108,8 @@ public class MLRecommendationService : IRecommendationService
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Error predicting for show {ShowId}", show.Id);
+                float fallbackScore = ((float)show.Rating * 0.5f) + ((float)show.Popularity / 10 * 0.5f);
+                scoredShows.Add((show, fallbackScore));
             }
         }
 
@@ -117,17 +126,32 @@ public class MLRecommendationService : IRecommendationService
             .Distinct()
             .ToListAsync();
 
-        return topRecommendations.Select(r => new TvShowRecommendationDto
+        return topRecommendations.Select(r =>
         {
-            Id = r.Show.Id,
-            Title = r.Show.Title,
-            PosterUrl = r.Show.PosterUrl,
-            Rating = r.Show.Rating,
-            ReleaseDate = r.Show.ReleaseDate,
-            Genres = r.Show.Genres.Select(g => g.Genre.Name).ToList(),
-            IsFavorite = false,
-            Score = Math.Round((decimal)r.Score * 10, 1), // Scale to 0-100
-            Reason = GenerateReason(r.Show, favoriteGenreIds)
+            float safeScore = Math.Max(0f, Math.Min(r.Score, 10f));
+            decimal decimalScore = 0m;
+
+            try
+            {
+                decimalScore = Math.Round((decimal)safeScore * 10m, 1);
+            }
+            catch
+            {
+                decimalScore = 0m;
+            }
+
+            return new TvShowRecommendationDto
+            {
+                Id = r.Show.Id,
+                Title = r.Show.Title,
+                PosterUrl = r.Show.PosterUrl,
+                Rating = r.Show.Rating,
+                ReleaseDate = r.Show.ReleaseDate,
+                Genres = r.Show.Genres.Select(g => g.Genre.Name).ToList(),
+                IsFavorite = false,
+                Score = decimalScore,
+                Reason = GenerateReason(r.Show, favoriteGenreIds)
+            };
         }).ToList();
     }
 
